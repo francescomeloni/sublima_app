@@ -1,0 +1,32 @@
+name: sublima_webview
+description: WebView client per Sublima con supporto Mixed Content (HTTPS → HTTP)
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # WebView con controllo completo Mixed Content
+  flutter_inappwebview: ^6.0.0
+  
+  # Salvataggio persistente URL profilo
+  shared_preferences: ^2.2.0
+  
+  # Apertura link esterni (opzionale)
+  url_launcher: ^6.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Asset dell'app (logo, icone personalizzate)
+  assets:
+    - assets/images/logosublimapiccolo.png
