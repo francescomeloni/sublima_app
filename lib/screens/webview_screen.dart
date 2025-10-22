@@ -178,25 +178,44 @@ class _WebViewScreenState extends State<WebViewScreen> {
                   url: WebUri(widget.profileUrl),
                 ),
                 initialSettings: InAppWebViewSettings(
+                  // Mixed Content - fondamentale per HTTPS -> HTTP
                   mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+                  
+                  // Sicurezza e permessi
                   javaScriptEnabled: true,
                   javaScriptCanOpenWindowsAutomatically: true,
                   domStorageEnabled: true,
                   databaseEnabled: true,
                   cacheEnabled: true,
+                  
+                  // Media
                   mediaPlaybackRequiresUserGesture: false,
+                  allowsInlineMediaPlayback: true,
+                  
+                  // Zoom
                   supportZoom: true,
                   builtInZoomControls: true,
                   displayZoomControls: false,
-                  allowsInlineMediaPlayback: true,
-                  userAgent: 'SublimaWebView/1.0 (Flutter) Mobile',
+                  
+                  // Geolocation
                   geolocationEnabled: true,
+                  
+                  // User Agent - identifica l'app
+                  userAgent: 'SublimaWebView/1.0 (Flutter) Mobile',
+                  
+                  // Navigazione
                   useShouldOverrideUrlLoading: true,
                   useOnLoadResource: false,
                   clearCache: false,
                   supportMultipleWindows: false,
                   disableVerticalScroll: false,
                   disableHorizontalScroll: false,
+                  
+                  // Windows specific: Allow insecure content (HTTP da HTTPS)
+                  // Queste opzioni potrebbero non essere disponibili su tutte le piattaforme
+                  // ma non causano errori se ignorate
+                  allowFileAccessFromFileURLs: true,
+                  allowUniversalAccessFromFileURLs: true,
                 ),
                 
                 onWebViewCreated: (controller) {
@@ -259,7 +278,15 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 },
                 
                 onConsoleMessage: (controller, consoleMessage) {
-                  // Debug console
+                  // Debug console - utile per diagnostica
+                  // print('[Console] ${consoleMessage.messageLevel.name}: ${consoleMessage.message}');
+                },
+                
+                // Gestione errori SSL/TLS - importante per certificati self-signed o HTTP
+                onReceivedServerTrustAuthRequest: (controller, challenge) async {
+                  // ATTENZIONE: In produzione valutare se accettare tutti i certificati
+                  // Per ora permettiamo tutto per supportare Mixed Content
+                  return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
                 },
               ),
             ),

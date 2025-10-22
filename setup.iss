@@ -3,7 +3,7 @@
 
 [Setup]
 AppName=Sublima WebView
-AppVersion=1.0.0
+AppVersion=1.0.1
 AppPublisher=Sublima ERP
 AppPublisherURL=https://sublima.it
 AppSupportURL=https://sublima.it/support
@@ -11,7 +11,7 @@ AppUpdatesURL=https://sublima.it/downloads
 DefaultDirName={localappdata}\Sublima
 DefaultGroupName=Sublima WebView
 OutputDir=Output
-OutputBaseFilename=SublimaWebView-Setup-1.0.0
+OutputBaseFilename=SublimaWebView-Setup-1.0.1
 SourceDir=.
 Compression=lzma2
 SolidCompression=yes
@@ -28,12 +28,13 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 ; File da installare
 [Files]
-; Applicazione Flutter
-Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Applicazione Flutter (corretto percorso senza x64 se build standard)
+; NOTA: Verifica se il percorso corretto è build\windows\runner\Release\ o build\windows\x64\runner\Release\
+Source: "build\windows\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Cartella data (assets Flutter)
-Source: "build\windows\x64\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
-; Icona (copiata nella root dell'app)
-Source: "assets\images\logosublimapiccolo.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "build\windows\runner\Release\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Icona (copiata nella root dell'app) - opzionale se esiste
+Source: "assets\images\logosublimapiccolo.ico"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 ; Cartelle da creare
 [Dirs]

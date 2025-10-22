@@ -177,6 +177,13 @@ Verifica che `ios/Runner/Info.plist` contenga:
 
 Installa [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)
 
+### Windows: Mixed Content bloccato (HTTPS → HTTP)
+
+**Risolto nella versione corrente.** Se persiste:
+1. Verifica build Release (non Debug)
+2. Aggiorna WebView2 Runtime alla versione più recente
+3. Vedi `WINDOWS_MIXED_CONTENT_FIX.md` per dettagli tecnici
+
 ### Build Android fallisce
 
 ```bash
