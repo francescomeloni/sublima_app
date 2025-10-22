@@ -1,7 +1,7 @@
 name: sublima_webview
 description: WebView client per Sublima con supporto Mixed Content (HTTPS → HTTP)
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.2+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -10,8 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # WebView con controllo completo Mixed Content
-  flutter_inappwebview: ^6.1.0
+  # WebView con controllo completo Mixed Content (Android, iOS, Windows)
+  flutter_inappwebview: ^6.0.0
+  
+  # WebView per Linux (supporto base, mixed content limitato)
+  # Nota: webview_flutter 4.4+ include supporto Linux nativo
+  webview_flutter: ^4.4.0
   
   # Salvataggio persistente URL profilo
   shared_preferences: ^2.2.0

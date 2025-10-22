@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:webview_flutter/webview_flutter.dart' as wf;
+import 'package:url_launcher/url_launcher.dart';
 import '../services/storage_service.dart';
 import 'setup_screen.dart';
 
@@ -129,8 +131,13 @@ class _WebViewScreenState extends State<WebViewScreen> {
   Widget build(BuildContext context) {
     const Color sublimaBordeaux = Color(0xFF8B0000);
     
-    // Su Web e Linux mostra messaggio (InAppWebView non supportato)
-    if (kIsWeb || Theme.of(context).platform == TargetPlatform.linux) {
+    // Su Linux usa browser esterno invece di WebView
+    if (Theme.of(context).platform == TargetPlatform.linux) {
+      return _buildLinuxBrowserLauncher();
+    }
+    
+    // Su Web mostra messaggio (InAppWebView non supportato)
+    if (kIsWeb) {
       return _buildUnsupportedPlatformMessage();
     }
 
@@ -296,9 +303,22 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 
-  /// Messaggio per piattaforme non supportate (Web, Linux)
+  /// Schermata Linux - WebView embedded (supporto base, Mixed Content limitato)
+  Widget _buildLinuxBrowserLauncher() {
+    return _LinuxWebViewWidget(
+      profileUrl: widget.profileUrl,
+      onResetConfiguration: _resetConfiguration,
+    );
+  }
+
+  /// Messaggio per piattaforme non supportate (Web)
   Widget _buildUnsupportedPlatformMessage() {
-    final platformName = kIsWeb ? 'Web' : 'Linux Desktop';
+    return _buildWebPlatformMessage();
+  }
+
+  /// Widget per messaggio piattaforma Web
+  Widget _buildWebPlatformMessage() {
+    const platformName = 'Web';
     
     return Scaffold(
       appBar: AppBar(
@@ -416,6 +436,234 @@ class _WebViewScreenState extends State<WebViewScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    Text(
+                      'flutter build apk --release\nflutter build windows --release',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        color: Colors.green.shade800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Widget separato per Linux - apre browser esterno
+/// webview_flutter non ha supporto completo per Linux embedded WebView
+class _LinuxWebViewWidget extends StatefulWidget {
+  final String profileUrl;
+  final VoidCallback onResetConfiguration;
+
+  const _LinuxWebViewWidget({
+    required this.profileUrl,
+    required this.onResetConfiguration,
+  });
+
+  @override
+  State<_LinuxWebViewWidget> createState() => _LinuxWebViewWidgetState();
+}
+
+class _LinuxWebViewWidgetState extends State<_LinuxWebViewWidget> {
+  bool _browserLaunched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Apri automaticamente nel browser esterno
+    _launchInBrowser();
+  }
+
+  Future<void> _launchInBrowser() async {
+    final url = widget.profileUrl.startsWith('http') 
+      ? widget.profileUrl 
+      : 'https://${widget.profileUrl}';
+    
+    final Uri uri = Uri.parse(url);
+    
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        setState(() {
+          _browserLaunched = true;
+        });
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Impossibile aprire il browser'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Errore: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const Color sublimaBordeaux = Color(0xFF8B0000);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Sublima'),
+        backgroundColor: sublimaBordeaux,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: widget.onResetConfiguration,
+            tooltip: 'Configurazione',
+          ),
+        ],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.desktop_windows,
+                  size: 80,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Piattaforma Linux',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange.shade900,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _browserLaunched
+                    ? 'Browser esterno aperto con successo!'
+                    : 'Apertura browser in corso...',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Su Linux, Sublima WebView usa il browser di sistema.\n\n'
+                'WebView embedded non è completamente supportato su Linux.\n'
+                'Per WebView completo con Mixed Content, usa Android o Windows.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.link, color: Colors.blue.shade700),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'URL Configurato:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      widget.profileUrl,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _launchInBrowser,
+                icon: const Icon(Icons.open_in_browser),
+                label: const Text('Riapri nel Browser'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  backgroundColor: sublimaBordeaux,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: widget.onResetConfiguration,
+                icon: const Icon(Icons.settings),
+                label: const Text('Cambia Configurazione'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  foregroundColor: Colors.orange.shade700,
+                  side: BorderSide(color: Colors.orange.shade700),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Build per piattaforme con WebView completo',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Text(
                       'flutter build apk --release\nflutter build windows --release',
                       textAlign: TextAlign.center,

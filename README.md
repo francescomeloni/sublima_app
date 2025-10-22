@@ -11,10 +11,10 @@ Questa app nativa bypassa questa restrizione permettendo la comunicazione comple
 
 ## Caratteristiche
 
-- ✅ **Mixed Content abilitato** - Comunicazione HTTPS → HTTP senza blocchi
+- ✅ **Mixed Content abilitato** - Comunicazione HTTPS → HTTP senza blocchi (Android, iOS, Windows)
 - ✅ **UI Fullscreen** - Utilizzo completo dello schermo disponibile
 - ✅ **Setup semplice** - Configurazione con solo URL profilo Sublima
-- ✅ **Multi-piattaforma** - Android, iOS, Windows
+- ✅ **Multi-piattaforma** - Android, iOS, Windows, Linux
 - ✅ **Storage persistente** - URL salvato localmente
 - ✅ **Navigazione fluida** - Supporto history, reload, gestione errori
 
@@ -183,6 +183,14 @@ Installa [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webvi
 1. Verifica build Release (non Debug)
 2. Aggiorna WebView2 Runtime alla versione più recente
 3. Vedi `WINDOWS_MIXED_CONTENT_FIX.md` per dettagli tecnici
+
+### Linux: Mixed Content bloccato
+
+**Supporto parziale.** Linux usa `webview_flutter` con supporto Mixed Content limitato:
+- WebView embedded funziona per navigazione base
+- Mixed Content HTTPS → HTTP **potrebbe essere bloccato** dal browser
+- Per supporto completo, usa versione Android o Windows
+- Opzione alternativa: usa pulsante "Apri nel Browser Esterno" dal menu
 
 ### Build Android fallisce
 

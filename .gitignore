@@ -77,7 +77,9 @@ coverage/
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
 
-
+# Documentation files (exclude from tracking)
+*.md
+!README.md
 
 Output/
 WebView2RuntimeSetup.exe
