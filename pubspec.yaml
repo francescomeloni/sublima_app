@@ -11,7 +11,8 @@ dependencies:
     sdk: flutter
   
   # WebView con controllo completo Mixed Content (Android, iOS, Windows)
-  flutter_inappwebview: ^6.0.0
+  # Versione 6.1.5+ con bug fix per schermata bianca su Android
+  flutter_inappwebview: ^6.1.5
   
   # WebView per Linux (supporto base, mixed content limitato)
   # Nota: webview_flutter 4.4+ include supporto Linux nativo

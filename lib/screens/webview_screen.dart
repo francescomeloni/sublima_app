@@ -1,19 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:webview_flutter/webview_flutter.dart' as wf;
 import 'package:url_launcher/url_launcher.dart';
 import '../services/storage_service.dart';
 import 'setup_screen.dart';
 
 /// Schermata principale con WebView fullscreen
-/// 
+///
 /// Carica il profilo Sublima con Mixed Content abilitato
 /// per permettere comunicazione HTTPS → HTTP verso ZERO Esterno
 class WebViewScreen extends StatefulWidget {
   final String profileUrl;
 
-  const WebViewScreen({Key? key, required this.profileUrl}) : super(key: key);
+  const WebViewScreen({super.key, required this.profileUrl});
 
   @override
   State<WebViewScreen> createState() => _WebViewScreenState();
@@ -23,6 +22,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
   InAppWebViewController? _webViewController;
   double _progress = 0;
   bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
   String _currentUrl = '';
 
   /// Reset configurazione e torna al setup
@@ -95,7 +96,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
               title: const Text('Cancella Cache'),
               onTap: () async {
                 Navigator.pop(context);
-                await _webViewController?.clearCache();
+                await InAppWebViewController.clearAllCache();
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Cache cancellata')),
@@ -127,29 +128,87 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 
+  /// Costruisce le impostazioni WebView in base alla piattaforma
+  InAppWebViewSettings _buildWebViewSettings() {
+    debugPrint('[WebView] Costruendo settings per URL: ${widget.profileUrl}');
+
+    final settings = InAppWebViewSettings(
+      // Mixed Content - fondamentale per HTTPS -> HTTP
+      mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+
+      // Sicurezza e permessi
+      javaScriptEnabled: true,
+      javaScriptCanOpenWindowsAutomatically: true,
+      domStorageEnabled: true,
+      databaseEnabled: true,
+      cacheEnabled: true,
+
+      // Media
+      mediaPlaybackRequiresUserGesture: false,
+      allowsInlineMediaPlayback: true,
+
+      // Zoom
+      supportZoom: true,
+      builtInZoomControls: true,
+      displayZoomControls: false,
+
+      // Geolocation
+      geolocationEnabled: true,
+
+      // User Agent - identifica l'app
+      userAgent: 'SublimaWebView/1.0 (Flutter) Mobile',
+
+      // Navigazione
+      useShouldOverrideUrlLoading: true,
+      useOnLoadResource: true,
+      clearCache: false,
+      supportMultipleWindows: false,
+      disableVerticalScroll: false,
+      disableHorizontalScroll: false,
+
+      // Fix per schermata bianca su Android (workaround per 6.0.0)
+      transparentBackground: false,
+      disallowOverScroll: false,
+      verticalScrollBarEnabled: true,
+      horizontalScrollBarEnabled: true,
+    );
+
+    debugPrint(
+        '[WebView] Settings costruiti: mixedContentMode=${settings.mixedContentMode}, javaScriptEnabled=${settings.javaScriptEnabled}');
+    return settings;
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color sublimaBordeaux = Color(0xFF8B0000);
-    
+
     // Su Linux usa browser esterno invece di WebView
     if (Theme.of(context).platform == TargetPlatform.linux) {
       return _buildLinuxBrowserLauncher();
     }
-    
+
     // Su Web mostra messaggio (InAppWebView non supportato)
     if (kIsWeb) {
       return _buildUnsupportedPlatformMessage();
     }
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (_webViewController != null) {
-          if (await _webViewController!.canGoBack()) {
-            _webViewController!.goBack();
-            return false;
-          }
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) {
+          return;
         }
-        return true;
+
+        if (await _webViewController?.canGoBack() ?? false) {
+          await _webViewController!.goBack();
+          return;
+        }
+
+        if (!mounted) {
+          return;
+        }
+
+        Navigator.of(context).maybePop();
       },
       child: Scaffold(
         appBar: AppBar(
@@ -176,128 +235,218 @@ class _WebViewScreenState extends State<WebViewScreen> {
               LinearProgressIndicator(
                 value: _progress,
                 backgroundColor: Colors.grey.shade200,
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B0000)),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Color(0xFF8B0000)),
               ),
-            
             Expanded(
-              child: InAppWebView(
-                initialUrlRequest: URLRequest(
-                  url: WebUri(widget.profileUrl),
-                ),
-                initialSettings: InAppWebViewSettings(
-                  // Mixed Content - fondamentale per HTTPS -> HTTP
-                  mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-                  
-                  // Sicurezza e permessi
-                  javaScriptEnabled: true,
-                  javaScriptCanOpenWindowsAutomatically: true,
-                  domStorageEnabled: true,
-                  databaseEnabled: true,
-                  cacheEnabled: true,
-                  
-                  // Media
-                  mediaPlaybackRequiresUserGesture: false,
-                  allowsInlineMediaPlayback: true,
-                  
-                  // Zoom
-                  supportZoom: true,
-                  builtInZoomControls: true,
-                  displayZoomControls: false,
-                  
-                  // Geolocation
-                  geolocationEnabled: true,
-                  
-                  // User Agent - identifica l'app
-                  userAgent: 'SublimaWebView/1.0 (Flutter) Mobile',
-                  
-                  // Navigazione
-                  useShouldOverrideUrlLoading: true,
-                  useOnLoadResource: false,
-                  clearCache: false,
-                  supportMultipleWindows: false,
-                  disableVerticalScroll: false,
-                  disableHorizontalScroll: false,
-                  
-                  // Windows specific: Allow insecure content (HTTP da HTTPS)
-                  // Queste opzioni potrebbero non essere disponibili su tutte le piattaforme
-                  // ma non causano errori se ignorate
-                  allowFileAccessFromFileURLs: true,
-                  allowUniversalAccessFromFileURLs: true,
-                ),
-                
-                onWebViewCreated: (controller) {
-                  _webViewController = controller;
-                },
-                
-                onLoadStart: (controller, url) {
-                  setState(() {
-                    _isLoading = true;
-                    _progress = 0;
-                    if (url != null) {
-                      _currentUrl = url.toString();
-                    }
-                  });
-                },
-                
-                onProgressChanged: (controller, progress) {
-                  setState(() {
-                    _progress = progress / 100;
-                  });
-                },
-                
-                onLoadStop: (controller, url) async {
-                  setState(() {
-                    _isLoading = false;
-                    if (url != null) {
-                      _currentUrl = url.toString();
-                    }
-                  });
-                },
-                
-                onLoadError: (controller, url, code, message) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Errore caricamento: $message'),
-                      backgroundColor: Colors.red.shade700,
-                      action: SnackBarAction(
-                        label: 'Riprova',
-                        textColor: Colors.white,
-                        onPressed: () => controller.reload(),
-                      ),
-                      duration: const Duration(seconds: 5),
+              child: Stack(
+                children: [
+                  InAppWebView(
+                    initialUrlRequest: URLRequest(
+                      url: WebUri(widget.profileUrl),
                     ),
-                  );
-                },
-                
-                onLoadHttpError: (controller, url, statusCode, description) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Errore HTTP $statusCode: $description'),
-                      backgroundColor: Colors.orange.shade700,
-                    ),
-                  );
-                },
-                
-                shouldOverrideUrlLoading: (controller, navigationAction) async {
-                  return NavigationActionPolicy.ALLOW;
-                },
-                
-                onConsoleMessage: (controller, consoleMessage) {
-                  // Debug console - utile per diagnostica
-                  // print('[Console] ${consoleMessage.messageLevel.name}: ${consoleMessage.message}');
-                },
-                
-                // Gestione errori SSL/TLS - importante per certificati self-signed o HTTP
-                onReceivedServerTrustAuthRequest: (controller, challenge) async {
-                  // ATTENZIONE: In produzione valutare se accettare tutti i certificati
-                  // Per ora permettiamo tutto per supportare Mixed Content
-                  return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
-                },
+                    initialSettings: _buildWebViewSettings(),
+                    onWebViewCreated: (controller) {
+                      _webViewController = controller;
+                    },
+                    onLoadStart: (controller, url) {
+                      setState(() {
+                        _isLoading = true;
+                        _hasError = false;
+                        _errorMessage = '';
+                        _progress = 0;
+                        if (url != null) {
+                          _currentUrl = url.toString();
+                        }
+                      });
+                      debugPrint('[WebView] ========== LOAD START ==========');
+                      debugPrint(
+                          '[WebView] URL Iniziale (widget): ${widget.profileUrl}');
+                      debugPrint(
+                          '[WebView] URL Attuale (onLoadStart): $_currentUrl');
+                      debugPrint('[WebView] ==============================');
+                    },
+                    onProgressChanged: (controller, progress) {
+                      setState(() {
+                        _progress = progress / 100;
+                      });
+                    },
+                    onLoadStop: (controller, url) async {
+                      setState(() {
+                        _isLoading = false;
+                        if (url != null) {
+                          _currentUrl = url.toString();
+                        }
+                      });
+                      debugPrint('[WebView] ========== LOAD STOP ==========');
+                      debugPrint('[WebView] URL Caricato: $_currentUrl');
+                      debugPrint('[WebView] ==============================');
+                    },
+                    shouldOverrideUrlLoading:
+                        (controller, navigationAction) async {
+                      return NavigationActionPolicy.ALLOW;
+                    },
+                    onLoadResource: (controller, resource) {
+                      // Log di ogni risorsa caricata (utile per debug Mixed Content)
+                      final url = resource.url.toString();
+                      if (url.startsWith('http://')) {
+                        debugPrint('[WebView] 🔓 HTTP Resource: $url');
+                      }
+                    },
+                    onConsoleMessage: (controller, consoleMessage) {
+                      debugPrint(
+                        '[WebView Console] [${consoleMessage.messageLevel}] ${consoleMessage.message}',
+                      );
+                    },
+                    onReceivedServerTrustAuthRequest:
+                        (controller, challenge) async {
+                      return ServerTrustAuthResponse(
+                        action: ServerTrustAuthResponseAction.PROCEED,
+                      );
+                    },
+                    onPermissionRequest: (controller, permissionRequest) async {
+                      return PermissionResponse(
+                        resources: permissionRequest.resources,
+                        action: PermissionResponseAction.GRANT,
+                      );
+                    },
+                    onReceivedHttpError:
+                        (controller, request, errorResponse) async {
+                      if (!mounted) {
+                        return;
+                      }
+                      setState(() {
+                        _isLoading = false;
+                        _hasError = true;
+                        _errorMessage =
+                            'HTTP ${errorResponse.statusCode}: ${errorResponse.reasonPhrase ?? 'Errore'}';
+                      });
+                      debugPrint('[WebView] ========== HTTP ERROR ==========');
+                      debugPrint('[WebView] URL: ${request.url}');
+                      debugPrint(
+                        '[WebView] Status Code: ${errorResponse.statusCode}',
+                      );
+                      debugPrint(
+                        '[WebView] Reason: ${errorResponse.reasonPhrase}',
+                      );
+                      debugPrint('[WebView] ==============================');
+                      if (!mounted) {
+                        return;
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Errore HTTP ${errorResponse.statusCode}: ${errorResponse.reasonPhrase ?? 'Errore'}',
+                          ),
+                          backgroundColor: Colors.orange.shade700,
+                        ),
+                      );
+                    },
+                    onReceivedError: (controller, request, error) async {
+                      if (!mounted) {
+                        return;
+                      }
+                      setState(() {
+                        _isLoading = false;
+                        _hasError = true;
+                        _errorMessage = error.description;
+                      });
+                      debugPrint('[WebView] ========== LOAD ERROR ==========');
+                      debugPrint('[WebView] URL: ${request.url}');
+                      debugPrint('[WebView] Description: ${error.description}');
+                      debugPrint('[WebView] Type: ${error.type}');
+                      debugPrint('[WebView] ==============================');
+                      if (!mounted) {
+                        return;
+                      }
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Errore di caricamento: ${error.description}'),
+                          backgroundColor: Colors.red.shade700,
+                          duration: const Duration(seconds: 5),
+                          action: SnackBarAction(
+                            label: 'Riprova',
+                            textColor: Colors.white,
+                            onPressed: () => controller.reload(),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (_hasError) _buildErrorOverlay(),
+                ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.4),
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Card(
+          elevation: 4,
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.red, size: 32),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Problema di caricamento',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage.isEmpty
+                      ? 'Si è verificato un errore sconosciuto durante il caricamento della pagina.'
+                      : _errorMessage,
+                  style: TextStyle(color: Colors.grey.shade800),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _hasError = false;
+                          _errorMessage = '';
+                          _isLoading = true;
+                        });
+                        _webViewController?.reload();
+                      },
+                      child: const Text('Riprova'),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton(
+                      onPressed: _resetConfiguration,
+                      child: const Text('Configura di nuovo'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -319,7 +468,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   /// Widget per messaggio piattaforma Web
   Widget _buildWebPlatformMessage() {
     const platformName = 'Web';
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sublima'),
@@ -354,9 +503,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
               Text(
                 'Piattaforma $platformName',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade900,
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade900,
+                    ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -426,7 +575,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 32),
+                    Icon(Icons.info_outline,
+                        color: Colors.green.shade700, size: 32),
                     const SizedBox(height: 8),
                     Text(
                       'Build per Android o Windows',
@@ -482,12 +632,12 @@ class _LinuxWebViewWidgetState extends State<_LinuxWebViewWidget> {
   }
 
   Future<void> _launchInBrowser() async {
-    final url = widget.profileUrl.startsWith('http') 
-      ? widget.profileUrl 
-      : 'https://${widget.profileUrl}';
-    
+    final url = widget.profileUrl.startsWith('http')
+        ? widget.profileUrl
+        : 'https://${widget.profileUrl}';
+
     final Uri uri = Uri.parse(url);
-    
+
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -517,7 +667,7 @@ class _LinuxWebViewWidgetState extends State<_LinuxWebViewWidget> {
   @override
   Widget build(BuildContext context) {
     const Color sublimaBordeaux = Color(0xFF8B0000);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sublima'),
@@ -554,9 +704,9 @@ class _LinuxWebViewWidgetState extends State<_LinuxWebViewWidget> {
               Text(
                 'Piattaforma Linux',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade900,
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade900,
+                    ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -654,7 +804,8 @@ class _LinuxWebViewWidgetState extends State<_LinuxWebViewWidget> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.green.shade700, size: 32),
+                    Icon(Icons.info_outline,
+                        color: Colors.green.shade700, size: 32),
                     const SizedBox(height: 8),
                     Text(
                       'Build per piattaforme con WebView completo',

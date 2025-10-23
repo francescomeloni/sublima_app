@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'screens/setup_screen.dart';
 import 'screens/webview_screen.dart';
 import 'services/storage_service.dart';
@@ -8,27 +7,27 @@ import 'services/storage_service.dart';
 void main() async {
   // Inizializza binding Flutter
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Forza orientamento portrait su mobile (opzionale, commenta se non necessario)
   // await SystemChrome.setPreferredOrientations([
   //   DeviceOrientation.portraitUp,
   //   DeviceOrientation.portraitDown,
   // ]);
-  
+
   // Avvia app
   runApp(const SublimaWebViewApp());
 }
 
 /// Widget root dell'applicazione
 class SublimaWebViewApp extends StatelessWidget {
-  const SublimaWebViewApp({Key? key}) : super(key: key);
+  const SublimaWebViewApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     // Colori ufficiali Sublima
     const Color sublimaBordeaux = Color(0xFF8B0000); // Bordeaux scuro
-    const Color sublimaBlack = Color(0xFF000000);    // Nero
-    
+    const Color sublimaBlack = Color(0xFF000000); // Nero
+
     return MaterialApp(
       title: 'Sublima',
       debugShowCheckedModeBanner: false,
@@ -73,7 +72,7 @@ class SublimaWebViewApp extends StatelessWidget {
 
 /// Splash screen che verifica se esiste configurazione salvata
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -90,11 +89,11 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkConfiguration() async {
     // Simula splash screen (opzionale, rimuovi se non necessario)
     await Future.delayed(const Duration(milliseconds: 800));
-    
+
     final profileUrl = await StorageService().getProfileUrl();
-    
+
     if (!mounted) return;
-    
+
     if (profileUrl != null && profileUrl.isNotEmpty) {
       // URL già configurato → vai direttamente alla WebView
       Navigator.of(context).pushReplacement(
@@ -115,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     const Color sublimaBordeaux = Color(0xFF8B0000);
-    
+
     return Scaffold(
       backgroundColor: sublimaBordeaux,
       body: Center(
@@ -146,7 +145,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            
+
             // Titolo
             const Text(
               'SUBLIMA',
@@ -168,7 +167,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 48),
-            
+
             // Loading indicator
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),

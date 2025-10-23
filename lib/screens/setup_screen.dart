@@ -3,11 +3,11 @@ import '../services/storage_service.dart';
 import 'webview_screen.dart';
 
 /// Schermata di configurazione iniziale
-/// 
+///
 /// Permette all'utente di inserire l'URL del profilo Sublima
 /// che verrà salvato e usato per la WebView
 class SetupScreen extends StatefulWidget {
-  const SetupScreen({Key? key}) : super(key: key);
+  const SetupScreen({super.key});
 
   @override
   State<SetupScreen> createState() => _SetupScreenState();
@@ -32,7 +32,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
     try {
       String url = _urlController.text.trim();
-      
+
       // Normalizza URL: aggiungi https:// se mancante
       if (!url.startsWith('http://') && !url.startsWith('https://')) {
         url = 'https://$url';
@@ -42,7 +42,7 @@ class _SetupScreenState extends State<SetupScreen> {
       await StorageService().saveProfileUrl(url);
 
       if (!mounted) return;
-      
+
       // Naviga alla WebView
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -68,7 +68,7 @@ class _SetupScreenState extends State<SetupScreen> {
   Widget build(BuildContext context) {
     const Color sublimaBordeaux = Color(0xFF8B0000);
     const Color sublimaBlack = Color(0xFF000000);
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -106,41 +106,43 @@ class _SetupScreenState extends State<SetupScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  
+
                   // Titolo
                   Text(
                     'SUBLIMA',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: sublimaBordeaux,
-                      letterSpacing: 4,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: sublimaBordeaux,
+                          letterSpacing: 4,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  
+
                   Text(
                     'Configura il tuo profilo',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey.shade600,
-                    ),
+                          color: Colors.grey.shade600,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
-                  
+
                   // Input URL
                   TextFormField(
                     controller: _urlController,
                     decoration: InputDecoration(
                       labelText: 'URL Profilo Sublima',
                       hintText: 'es. https://profilo.sublima.it',
-                      prefixIcon: const Icon(Icons.link, color: sublimaBordeaux),
+                      prefixIcon:
+                          const Icon(Icons.link, color: sublimaBordeaux),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: sublimaBordeaux, width: 2),
+                        borderSide:
+                            const BorderSide(color: sublimaBordeaux, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.grey.shade50,
@@ -161,7 +163,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Bottone Salva
                   ElevatedButton(
                     onPressed: _isLoading ? null : _saveAndProceed,
@@ -180,7 +182,8 @@ class _SetupScreenState extends State<SetupScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Text(
@@ -191,16 +194,17 @@ class _SetupScreenState extends State<SetupScreen> {
                             ),
                           ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Nota informativa Mixed Content
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: sublimaBordeaux.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: sublimaBordeaux.withOpacity(0.2)),
+                      border:
+                          Border.all(color: sublimaBordeaux.withOpacity(0.2)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
